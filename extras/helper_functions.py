@@ -3,6 +3,13 @@
 
 import tensorflow as tf
 
+def preprocessing_img(image, label, img_shape=224):
+  """
+  Convert image datatype from uint8 to float32 and reshape image to [img_shape, img_shape, 3]
+  """
+  image = tf.image.resize(image, [img_shape, img_shape])
+  return tf.cast(image, tf.float32), label
+
 # Create a function to import an image and resize it to be able to be used with our model
 def load_and_prep_image(filename, img_shape=224, scale=True):
   """
@@ -15,14 +22,11 @@ def load_and_prep_image(filename, img_shape=224, scale=True):
   img_shape (int): size to resize target image to, default 224
   scale (bool): whether to scale pixel values to range(0, 1), default True
   """
-  # Read in the image
   img = tf.io.read_file(filename)
-  # Decode it into a tensor
-  img = tf.image.decode_jpeg(img)
-  # Resize the image
+  img = tf.io.decode_image(img)
   img = tf.image.resize(img, [img_shape, img_shape])
+
   if scale:
-    # Rescale the image (get all values between 0 and 1)
     return img/255.
   else:
     return img
@@ -267,22 +271,19 @@ def walk_through_dir(dir_path):
 # Function to evaluate: accuracy, precision, recall, f1-score
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
-def calculate_results(y_true, y_pred):
-  """
-  Calculates model accuracy, precision, recall and f1 score of a binary classification model.
+def create_model_results(y_true, y_pred):
 
-  Args:
-      y_true: true labels in the form of a 1D array
-      y_pred: predicted labels in the form of a 1D array
+  accuracy = accuracy_score(y_true, y_pred)
+  precision, recall, f1_score, _ = precision_recall_fscore_support(y_true, y_pred, average='weighted')
 
-  Returns a dictionary of accuracy, precision, recall, f1-score.
-  """
-  # Calculate model accuracy
-  model_accuracy = accuracy_score(y_true, y_pred) * 100
-  # Calculate model precision, recall and f1 score using "weighted average
-  model_precision, model_recall, model_f1, _ = precision_recall_fscore_support(y_true, y_pred, average="weighted")
-  model_results = {"accuracy": model_accuracy,
-                  "precision": model_precision,
-                  "recall": model_recall,
-                  "f1": model_f1}
+  model_results = {'accuracy': accuracy,
+                   'preciscion': precision,
+                   'recall': recall,
+                   'f1-score': f1_score}
   return model_results
+
+def compare_results(baseline_results, new_results):
+  for key, value in baseline_results.items():
+    print(f"Baseline {key}: {value:.2f}, New {key}: {new_results[key]:.2f}, Difference: {new_results[key]-value:.2f}")
+    
+    
